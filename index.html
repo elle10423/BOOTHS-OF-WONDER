@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BOOTHS OF WONDER</title>
+  <style>
+    body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  /*background: url('https://i.pinimg.com/736x/27/36/92/273692b6568a19d53af5b9421c0f6b2c.jpg') no-repeat center center/cover;*/
+  background: url('image/ground.png') no-repeat center center/cover;
+  position: relative;
+}
+
+/* Dark overlay */
+body::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.4); /* adjust darkness (0.6 = 60% black) */
+  z-index: 0;
+}
+
+/* Ensure wrapper is above overlay */
+.wrapper {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 25px;             /* more spacing between cards */
+  width: 70vw;           /* take 90% of the screen width */
+  max-width: 700px;     /* allow much larger cards */
+  position: relative;
+  z-index: 1;
+}
+
+
+    .card {
+      background: white;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      cursor: pointer;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      text-align: center;
+    }
+
+   .card img {
+    width: 100%;
+    height: 200px;         /* bigger image height */
+    object-fit: cover;
+    transition: transform 0.4s ease;
+}
+    .card h2 {
+      margin: 0;
+      padding: 12px;
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: #fcbe13;
+      background: #080808;
+      border-top: 1px solid #ddd;
+    }
+
+    /* Hover effects per row */
+    .wrapper .card:nth-child(1):hover,
+    .wrapper .card:nth-child(2):hover {
+      transform: translateY(-20px);
+      box-shadow: 0 8px 18px rgba(0,0,0,0.5);
+    }
+
+    .wrapper .card:nth-child(3):hover,
+    .wrapper .card:nth-child(4):hover {
+      transform: translateY(20px);
+      box-shadow: 0 8px 18px rgba(0,0,0,0.5);
+    }
+
+    /* Image zoom on hover */
+    .card:hover img {
+      transform: scale(1.3);
+    }
+    .feedback-button {
+  position: fixed; /* or absolute */
+  bottom: 20px;
+  right: 20px;
+  background-color: #fcbe13; /* Yellow color from your card headings */
+  color: #080808; /* Black color from your card headings */
+  border: none;
+  padding: 12px 24px;
+  font-size: 1rem;
+  font-weight: bold;
+  border-radius: 5px;
+  cursor: pointer;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  transition: transform 0.3s ease;
+  z-index: 2; /* Make sure it's above the overlay */
+}
+
+.feedback-button:hover {
+  transform: scale(1.05); /* Slightly bigger on hover */
+}
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="card" onclick="navigateTo('fruit.html')">
+      <img src="image/pic.jpg" alt="Fruit Catcher">
+      <h2>Fruit Catcher</h2>
+    </div>
+
+    <div class="card" onclick="navigateTo('water.html')">
+      <img src="image/tank3.png" alt="Dunk Tank">
+      <h2>Dunk Tank</h2>
+    </div>
+
+    <div class="card" onclick="navigateTo('hot.html')">
+      <img src="image/ring.png" alt="Ring Toss">
+      <h2>Ring Toss</h2>
+    </div>
+
+    <div class="card" onclick="navigateTo('balloon.html')">
+      <img src="image/balloon.png" alt="Balloon Popping">
+      <h2>Balloon Popping</h2>
+    </div>
+    <button class="feedback-button" onclick="navigateTo('evaluation.html')">Feedback</button>
+  </div>
+
+  <script>
+    function navigateTo(page) {
+      window.location.href = page;
+    }
+  </script>
+</body>
+</html>

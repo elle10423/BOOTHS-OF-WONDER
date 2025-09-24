@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Carnival Ring Toss Game</title>
+  <style>
+    body {
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+       /* plain white background */
+      font-family: Arial, sans-serif;
+      background: url('image/ring.png')  no-repeat center center/cover; /* your page bg */
+      background-size: cover;
+      background-position: center;
+    }
+    canvas {
+      border: 5px solid #8b0000;
+      border-radius: 10px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.5);
+      background: #fff8dc; /* canvas stays cream-colored */
+    }
+  </style>
+</head>
+<body>
+  <canvas id="gameCanvas" width="800" height="600"></canvas>
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+
+    let bottles = [];
+    let rings = [];
+    let ringCount = 10;
+    let score = 0;
+    let gameState = "menu";
+
+    const person = { x: 100, y: 450, width: 80, height: 120, speed: 6, throwing: false, handOffset: 0 };
+    let keys = {};
+
+    function setupBottles() {
+      bottles = [];
+      bottles.push({ x: 400, y: 150, radius: 25, rings: [] });
+      bottles.push({ x: 340, y: 230, radius: 25, rings: [] });
+      bottles.push({ x: 460, y: 230, radius: 25, rings: [] });
+      bottles.push({ x: 280, y: 310, radius: 25, rings: [] });
+      bottles.push({ x: 520, y: 310, radius: 25, rings: [] });
+    }
+    setupBottles();
+
+    class Ring {
+      constructor(x, y, targetX, targetY, snapToBottle = null) {
+        this.x = x;
+        this.y = y;
+        this.radius = 30;
+        this.gravity = 0.5;
+        this.landed = false;
+        this.rotation = 0;
+        this.spinSpeed = 0.2;
+        this.color = this.getRandomGradient();
+
+        if (snapToBottle) {
+          this.vx = (snapToBottle.x - x) / 18;
+          this.vy = (snapToBottle.y - 50 - y) / 18 - 6;
+          this.snapToBottle = snapToBottle;
+        } else {
+          let dx = targetX - x;
+          let dy = targetY - y;
+          let dist = Math.sqrt(dx * dx + dy * dy);
+          const speed = 13;
+          this.vx = (dx / dist) * speed;
+          this.vy = (dy / dist) * speed - 7;
+          this.snapToBottle = null;
+        }
+      }
+      getRandomGradient() {
+        const colors = ["blue", "orange", "purple", "yellow", "pink", "cyan", "lime", "magenta"];
+        return colors[Math.floor(Math.random() * colors.length)];
+      }
+      update() {
+        if (!this.landed) {
+          this.x += this.vx;
+          this.y += this.vy;
+          this.vy += this.gravity;
+          this.rotation += this.spinSpeed;
+          bottles.forEach(bottle => {
+            const mouthX = bottle.x;
+            const mouthY = bottle.y - 60;
+            let dx = this.x - mouthX;
+            let dy = this.y - mouthY;
+            let dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < this.radius - 8 && this.y > mouthY) {
+              this.landed = true;
+              let stackHeight = bottle.rings.length * 12;
+              this.x = bottle.x;
+              this.y = bottle.y + 10 - stackHeight;
+              this.rotation = 0;
+              bottle.rings.push(this);
+              score++;
+            }
+          });
+          if (this.y > canvas.height - 20) this.landed = true;
+        }
+      }
+      draw() {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.rotation);
+        ctx.beginPath();
+        ctx.strokeStyle = this.color;
+        ctx.lineWidth = 6;
+        ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+
+    function drawPerson() {
+      ctx.fillStyle = "#FFD700";
+      ctx.fillRect(person.x, person.y, person.width, person.height);
+      ctx.beginPath();
+      ctx.arc(person.x + 40, person.y - 20, 30, 0, Math.PI * 2);
+      ctx.fillStyle = "#ffe0bd";
+      ctx.fill();
+      const handX = person.x + person.width + person.handOffset;
+      const handY = person.y + 30;
+      ctx.beginPath();
+      ctx.strokeStyle = "blue";
+      ctx.lineWidth = 6;
+      ctx.arc(handX, handY, 20, 0, Math.PI * 2);
+      ctx.stroke();
+      if (ringCount > 0 && !person.throwing) {
+        ctx.beginPath();
+        ctx.strokeStyle = "white";
+        ctx.lineWidth = 6;
+        ctx.arc(handX, handY, 25, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    }
+
+    function drawBottles() {
+      bottles.forEach(bottle => {
+        ctx.fillStyle = "green";
+        ctx.fillRect(bottle.x - 20, bottle.y - 40, 40, 60);
+        bottle.rings.forEach(ring => ring.draw());
+        ctx.fillStyle = "#006400";
+        ctx.fillRect(bottle.x - 10, bottle.y - 70, 20, 30);
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(bottle.x - 12, bottle.y - 80, 24, 10);
+      });
+    }
+
+    function drawUI() {
+      ctx.fillStyle = "#000";
+      ctx.font = "22px Arial";
+      ctx.textAlign = "left";
+      ctx.fillText("Rings left: " + ringCount, 20, 30);
+      ctx.fillStyle = "black";
+      ctx.font = "bold 40px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText("Score: " + score, canvas.width / 2, 50);
+    }
+
+    function updatePerson() {
+      if (keys["ArrowLeft"] && person.x > 0) person.x -= person.speed;
+      if (keys["ArrowRight"] && person.x + person.width < canvas.width) person.x += person.speed;
+      if (person.throwing) {
+        if (person.handOffset < 20) person.handOffset += 2;
+        else { person.throwing = false; person.handOffset = 0; }
+      }
+    }
+
+    /* ===== MENU WITH MECHANICS ===== */
+    function drawMenu() {
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = "#8b0000";
+      ctx.font = "bold 50px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText("Carnival Ring Toss", canvas.width / 2, 100);
+
+      ctx.fillStyle = "#000";
+      ctx.font = "20px Arial";
+      ctx.fillText("HOW TO PLAY", canvas.width / 2, 160);
+      ctx.font = "18px Arial";
+      ctx.fillText("• You have 10 rings to throw.", canvas.width / 2, 190);
+      ctx.fillText("• Move left/right with Arrow Keys.", canvas.width / 2, 215);
+      ctx.fillText("• Click a bottle to auto-aim or click anywhere to free-throw.", canvas.width / 2, 240);
+      ctx.fillText("• Each ring that lands on a bottle scores 1 point.", canvas.width / 2, 265);
+      ctx.fillText("• Get all 10 to achieve a Perfect Score!", canvas.width / 2, 290);
+
+      ctx.fillStyle = "#2e8b57";
+      ctx.fillRect(canvas.width / 2 - 100, 350, 200, 60);
+      ctx.fillStyle = "#fff";
+      ctx.font = "30px Arial";
+      ctx.fillText("PLAY", canvas.width / 2, 390);
+
+      ctx.fillStyle = "#8b0000";
+      ctx.fillRect(canvas.width / 2 - 100, 430, 200, 60);
+      ctx.fillStyle = "#fff";
+      ctx.fillText("EXIT", canvas.width / 2, 470);
+    }
+
+    function drawEndScreen(win) {
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = win ? "#00aa00" : "red";
+      ctx.font = "bold 60px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText(win ? "🎉 PERFECT SCORE! 🎉" : "❌ Game Over ❌", canvas.width / 2, 200);
+      ctx.fillStyle = "#000";
+      ctx.font = "40px Arial";
+      ctx.fillText("Final Score: " + score + "/10", canvas.width / 2, 300);
+      ctx.fillStyle = "#2e8b57";
+      ctx.fillRect(canvas.width / 2 - 120, 370, 240, 60);
+      ctx.fillStyle = "#fff";
+      ctx.font = "30px Arial";
+      ctx.fillText("PLAY AGAIN", canvas.width / 2, 410);
+      ctx.fillStyle = "#8b0000";
+      ctx.fillRect(canvas.width / 2 - 120, 450, 240, 60);
+      ctx.fillStyle = "#fff";
+      ctx.fillText("EXIT", canvas.width / 2, 490);
+    }
+
+    function drawExit() {
+      ctx.fillStyle = "black";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "white";
+      ctx.font = "bold 50px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText("Thanks for playing!", canvas.width / 2, canvas.height / 2);
+    }
+
+    function gameLoop() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      if (gameState === "menu") drawMenu();
+      else if (gameState === "playing") {
+        updatePerson();
+        drawPerson();
+        drawUI();
+        drawBottles();
+        rings.forEach(ring => { ring.update(); if (!ring.landed) ring.draw(); });
+        if (ringCount === 0 && rings.every(r => r.landed))
+          gameState = score === 10 ? "win" : "lose";
+      } else if (gameState === "win") drawEndScreen(true);
+      else if (gameState === "lose") drawEndScreen(false);
+      else if (gameState === "exit") drawExit();
+      requestAnimationFrame(gameLoop);
+    }
+
+    document.addEventListener("keydown", e => keys[e.key] = true);
+    document.addEventListener("keyup", e => keys[e.key] = false);
+
+    canvas.addEventListener("click", e => {
+      let rect = canvas.getBoundingClientRect();
+      let mouseX = e.clientX - rect.left;
+      let mouseY = e.clientY - rect.top;
+
+      if (gameState === "menu") {
+        if (mouseX > canvas.width/2 - 100 && mouseX < canvas.width/2 + 100) {
+          if (mouseY > 350 && mouseY < 410) { gameState="playing"; rings=[]; ringCount=10; score=0; setupBottles(); }
+          else if (mouseY > 430 && mouseY < 490) { gameState="exit"; }
+        }
+      } else if (gameState === "playing" && ringCount > 0 && !person.throwing) {
+        let clickedBottle = null;
+        bottles.forEach(bottle => {
+          let dx = mouseX - bottle.x;
+          let dy = mouseY - bottle.y;
+          if (Math.sqrt(dx*dx + dy*dy) < bottle.radius + 20) clickedBottle = bottle;
+        });
+        if (clickedBottle) rings.push(new Ring(person.x+person.width+20, person.y+30, 0, 0, clickedBottle));
+        else rings.push(new Ring(person.x+person.width+20, person.y+30, mouseX, mouseY));
+        ringCount--; person.throwing = true;
+      } else if ((gameState==="win" || gameState==="lose") &&
+                 mouseX > canvas.width/2-120 && mouseX < canvas.width/2+120) {
+        if (mouseY > 370 && mouseY < 430) { gameState="playing"; rings=[]; ringCount=10; score=0; setupBottles(); }
+        else if (mouseY > 450 && mouseY < 510) { window.location.href = "index.html"; }
+      }
+    });
+
+    gameLoop();
+  </script>
+</body>
+</html>

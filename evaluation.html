@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Carnival Evaluation</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+      background: url('image/circus.jpg') no-repeat center center/cover;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .form-container {
+      background: white;
+      border-radius: 15px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+      width: 400px;
+      padding-bottom: 20px;
+      text-align: center;
+      overflow: hidden;
+    }
+
+    .form-header {
+      background: repeating-linear-gradient(
+        45deg,
+        #ff3c3c,
+        #ff3c3c 20px,
+        #ffd700 20px,
+        #ffd700 40px
+      );
+      height: 50px;
+      border-top-left-radius: 15px;
+      border-top-right-radius: 15px;
+    }
+
+    .form-title {
+      text-align: center;
+      font-size: 24px;
+      font-weight: bold;
+      margin: 15px 0;
+      color: #ff3c3c;
+    }
+
+    form {
+      padding: 0 30px;
+      text-align: left;
+    }
+
+    label {
+      display: block;
+      margin: 10px 0 5px;
+      font-weight: bold;
+      text-align: left;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 10px;
+      border: 2px solid #ff3c3c;
+      border-radius: 5px;
+      font-size: 14px;
+      margin-bottom: 15px;
+      box-sizing: border-box;
+      display: block;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 5px;
+      background: linear-gradient(to right, #ff3c3c, #ffd700);
+      color: white;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 10px;
+      transition: 0.3s;
+    }
+
+    button:hover {
+      opacity: 0.9;
+    }
+
+    .note {
+      font-size: 12px;
+      margin-top: 10px;
+      color: #555;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="form-container">
+    <div class="form-header"></div>
+    <h2 class="form-title">CARNIVAL EVALUATION</h2>
+
+    <form id="evaluationForm">
+      <label for="name">Name:</label>
+      <input type="text" id="name" name="name" required>
+
+      <label for="yearSection">Year & Section:</label>
+      <input type="text" id="yearSection" name="yearSection" required>
+
+      <label for="rating">Rating:</label>
+      <select id="rating" name="rating" required>
+        <option value="" disabled selected>Select Rating</option>
+        <option value="Excellent">Excellent</option>
+        <option value="Good">Good</option>
+        <option value="Fair">Fair</option>
+        <option value="Poor">Poor</option>
+      </select>
+
+      <label for="feedback">Feedback:</label>
+      <textarea id="feedback" name="feedback" rows="4" required></textarea>
+
+      <button type="submit" id="submitBtn">SUBMIT 🎉</button>
+      <p class="note">Your information will be kept confidential.</p>
+    </form>
+  </div>
+
+  <script>
+    // Replace with your deployed Google Apps Script Web App URL
+    const scriptURL = "https://script.google.com/macros/s/AKfycbwvJVUOAXv7fx79eJASNQtobe_JSvs8Rc85xvK3tuGWLJCIQePgDkE8PjrZ0LClQ005Fg/exec";
+    const form = document.getElementById("evaluationForm");
+    const submitBtn = document.getElementById("submitBtn");
+
+    form.addEventListener("submit", (e) => {
+  e.preventDefault();
+
+  submitBtn.disabled = true;
+  submitBtn.textContent = "Submitting...";
+
+  const payload = {
+    name: document.getElementById("name").value,
+    yearSection: document.getElementById("yearSection").value,
+    rating: document.getElementById("rating").value,
+    feedback: document.getElementById("feedback").value,
+  };
+
+  fetch(scriptURL, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  })
+    .then((res) => res.text())
+    .then((msg) => {
+       alert(msg); 
+      form.reset();
+      window.location.href = "index.html"; // Redirect after success
+    })
+    .catch((err) => console.error("Error:", err))
+    .finally(() => {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "SUBMIT 🎉";
+    });
+});
+
+  </script>
+</body>
+</html>

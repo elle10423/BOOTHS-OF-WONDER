@@ -1,0 +1,901 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Fruit Catcher Carnival</title>
+    <style>
+    
+        * {
+            box-sizing: border-box;
+            /* Offline system fonts only */
+            font-family: Arial, Helvetica, sans-serif;
+            user-select: none;
+        }
+        body {
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: url('image/pic.jpg') no-repeat center center/cover;
+            background-size: cover;
+            background-repeat: repeat;
+            color: white;
+            overflow: hidden;
+            transition: background 1s;
+        }
+        .game-title {
+            /* use a system "fun" fallback instead of Google Bangers */
+            font-family: "Impact", "Arial Black", Arial, sans-serif;
+            font-size: clamp(2rem, 8vw, 4rem);
+            margin-bottom: 20px;
+            text-align: center;
+            background: linear-gradient(155deg, #FFD700, #FF69B4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow:
+                0 0 8px rgba(224, 211, 211, 0.3),
+                0 0 10px rgba(255, 255, 255, 0.3),
+                0 0 20px rgba(0, 0, 0, 0.3);
+            animation: bounce 2s infinite ease-in-out;
+        }
+        @keyframes bounce {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+        .game {
+            position: relative;
+            width: 600px;
+            max-width: 95%;
+            aspect-ratio: 1.2 / 1;
+            border: 8px solid #8B4513;
+            border-radius: 12px;
+            overflow: hidden;
+            background: rgba(0,0,0,0.2);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+            transition: opacity 0.5s;
+        }
+        .basket {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 50px;
+            background: linear-gradient(to right, #A52A2A, #8B4513);
+            border-radius: 10px;
+            text-align: center;
+            line-height: 50px;
+            font-weight: bold;
+            font-size: 28px;
+            transition: width 0.3s, transform 0.1s;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            border: 2px solid #D2B48C;
+        }
+        .object {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px
+        }
+        .fruit {
+            font-size: 30px
+        }
+        .bomb {
+            font-size: 30px;
+            animation: bomb-pulse 1s infinite;
+        }
+        .golden {
+            font-size: 34px;
+            text-shadow: 0 0 8px #fff700, 0 0 12px #ffeb3b;
+            animation: rotate 2s infinite linear;
+        }
+        .rotten {
+            font-size: 30px;
+            filter: grayscale(100%) brightness(0.6);
+        }
+        .mystery {
+            font-size: 34px;
+            text-shadow: 0 0 8px #00bcd4, 0 0 12px #00e5ff;
+            animation: float 2s infinite ease-in-out;
+        }
+        .heartfruit {
+            font-size: 28px;
+            text-shadow: 0 0 10px red, 0 0 20px crimson;
+            animation: pulse 1s infinite alternate, wiggle 1.5s infinite linear;
+        }
+        @keyframes pulse {
+            from {
+                transform: scale(1);
+            }
+            to {
+                transform: scale(1.3);
+            }
+        }
+        @keyframes wiggle {
+            0% {
+                transform: rotate(0deg);
+            }
+            25% {
+                transform: rotate(5deg);
+            }
+            50% {
+                transform: rotate(0deg);
+            }
+            75% {
+                transform: rotate(-5deg);
+            }
+            100% {
+                transform: rotate(0deg);
+            }
+        }
+        @keyframes bomb-pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.2);
+            }
+        }
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        /* New CSS for rolling fruit */
+        @keyframes roll {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        .roll {
+            animation: roll 3s linear infinite;
+        }
+        .hud {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: clamp(0.9rem, 4vw, 1.2rem);
+            display: flex;
+            gap: 20px;
+            /* use the system display font as fallback for Bangers */
+            font-family: "Impact", "Arial Black", Arial, sans-serif;
+            text-shadow: 2px 2px 4px black;
+            z-index: 10;
+        }
+        .lives {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            font-size: clamp(0.9rem, 4vw, 1.2rem);
+            text-shadow: 2px 2px 4px black;
+            animation: heartbeat 1.5s infinite;
+        }
+        @keyframes heartbeat {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.1);
+            }
+        }
+        .power {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 1rem;
+            font-weight: bold;
+            text-shadow: 1px 1px 3px black;
+            padding: 3px 8px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        #powerBar {
+            width: 100px;
+            height: 10px;
+            background-color: rgba(0, 0, 0, 0.4);
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        #powerFill {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #ffeb3b, #ff9800);
+            transition: width 0.1s linear;
+        }
+        .warning, .effect {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: clamp(1.5rem, 8vw, 2.5rem);
+            font-weight: bold;
+            color: yellow;
+            display: none;
+            text-shadow: 0 0 10px black;
+            animation: blink 1s infinite;
+            font-family: "Impact", "Arial Black", Arial, sans-serif;
+            z-index: 10;
+        }
+        @keyframes blink {
+            50% {
+                opacity: 0;
+            }
+        }
+        .flash {
+            position: absolute;
+            top:0;
+            left:0;
+            right:0;
+            bottom:0;
+            background:red;
+            opacity:0.5;
+            display:none;
+            z-index:999;
+        }
+        .confetti-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+        }
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: #f0f;
+            animation: fall linear forwards;
+            opacity: 0;
+            border-radius: 50%;
+        }
+        @keyframes fall {
+            0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            text-align: center;
+        }
+        .modal-content {
+            background: linear-gradient(135deg, #f06, #f90);
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
+            animation: modal-pop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: 4px solid #fff;
+            max-width: 80%;
+            text-align: center;
+        }
+        @keyframes modal-pop {
+            from {
+                transform: scale(0.5);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+        .modal-content h2 {
+            font-family: "Impact", "Arial Black", Arial, sans-serif;
+            font-size: 2.5rem;
+            margin: 0 0 10px;
+            text-shadow: 2px 2px 4px black;
+        }
+        .modal-content p {
+            font-size: 1.2rem;
+            margin: 0 0 20px;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px black;
+        }
+        .modal-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        .modal-button {
+            background: #fff;
+            color: #f06;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 50px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            transition: transform 0.2s, background 0.2s;
+        }
+        .modal-button:hover {
+            transform: scale(1.05);
+            background: #f90;
+            color: #fff;
+        }
+        .button-group {
+            position: absolute;
+            top: 10px;
+            left: 20px;
+            z-index: 20;
+            display: flex;
+            gap: 5px;
+        }
+        .game-button {
+            padding: 6px 12px;
+            border: 2px solid white;
+            border-radius: 20px;
+            background: rgba(0,0,0,0.3);
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            font-size: 0.8rem;
+        }
+        .game-button.icon-button {
+            width: 30px;
+            height: 30px;
+            padding: 0;
+            font-size: 1rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .top-buttons {
+            position: absolute;
+            top: 0;
+            right: 0;
+            padding: 20px; /* invisible hover area */
+            display: flex;
+            gap: 10px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .top-buttons:hover {
+            opacity: 1;
+        }
+
+        .top-buttons button {
+            background: rgba(0,0,0,0.5);
+            color: white;
+            border: none;
+            padding: 8px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .top-buttons button:hover {
+            background: rgba(0,0,0,0.7);
+        }
+
+    </style>
+</head>
+<body>
+    <h1 class="game-title">Fruit Catcher</h1>
+
+    <div id="startScreenModal" class="modal" style="display: flex;">
+        <div class="modal-content">
+            <h2>Fruit Catcher</h2>
+            <p>Catch the fruits to score points, but avoid the bombs!</p>
+            <p>Catch golden pineapples for a score boost and a twist!</p>
+            <p>Catch heart fruits to gain lives!</p>
+            <button id="startButton" class="modal-button">Start Game</button>
+        </div>
+    </div>
+
+    <div class="game" id="game" style="display: none;">
+        <div class="button-group">
+            <button id="pauseButton" class="game-button">Pause</button>
+            <button id="quitButton" class="game-button">Quit</button>
+            <button id="muteButton" class="game-button icon-button">🔊</button>
+        </div>
+        <div class="basket" id="basket">🧺</div>
+        <div class="hud">
+            <div>Score: <span id="score">0</span></div>
+            <div id="mult">x1</div>
+        </div>
+        <div class="lives" id="lives">❤️❤️❤️❤️❤️</div>
+        <div class="power" id="power">
+            <span>Power:</span>
+            <div id="powerBar"><div id="powerFill"></div></div>
+        </div>
+        <div class="warning" id="warning">REVERSED!</div>
+        <div class="effect" id="effect"></div>
+        <div class="flash" id="flash"></div>
+        <div class="confetti-container" id="confetti-container"></div>
+    </div>
+
+    <div id="gameOverModal" class="modal">
+        <div class="modal-content">
+            <h2>Game Over!</h2>
+            <p>Final Score: <span id="finalScore">0</span></p>
+            <div class="modal-buttons">
+                <button id="restartButton" class="modal-button">Play Again</button>
+                <button id="homeButton" class="modal-button">Back to Home</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="pauseModal" class="modal">
+        <div class="modal-content">
+            <h2>Paused</h2>
+            <p>Take a break! Press Resume to continue.</p>
+            <button id="resumeButton" class="modal-button">Resume</button>
+        </div>
+    </div>
+
+    <!-- Removed Tone.js external script and replaced with HTML5 audio usage below -->
+    <script>
+        // Game state and element references
+        const game = document.getElementById('game');
+        const basket = document.getElementById('basket');
+        const scoreEl = document.getElementById('score');
+        const multEl = document.getElementById('mult');
+        const livesEl = document.getElementById('lives');
+        const powerEl = document.getElementById('power');
+        const powerFill = document.getElementById('powerFill');
+        const warning = document.getElementById('warning');
+        const effectEl = document.getElementById('effect');
+        const flash = document.getElementById('flash');
+        const startScreenModal = document.getElementById('startScreenModal');
+        const gameOverModal = document.getElementById('gameOverModal');
+        const pauseModal = document.getElementById('pauseModal');
+        const finalScoreEl = document.getElementById('finalScore');
+        const startButton = document.getElementById('startButton');
+        const quitButton = document.getElementById('quitButton');
+        const restartButton = document.getElementById('restartButton');
+        const homeButton = document.getElementById('homeButton');
+        const pauseButton = document.getElementById('pauseButton');
+        const resumeButton = document.getElementById('resumeButton');
+        const muteButton = document.getElementById('muteButton');
+        const confettiContainer = document.getElementById('confetti-container');
+
+        // Game variables
+        let score, mult, lives;
+        let isPaused = false;
+        const fruits = ['🍎', '🍌', '🍊', '🍇', '🍒'];
+        let reverseControls = false;
+        let stage = 0;
+        let stormMode = false;
+        let reverseCount = 0;
+        const maxReverse = 7;
+        let gameInterval, powerInterval;
+        let fallIntervals = [];
+
+        // Basket movement logic
+        let basketX;
+        let basketSpeed = 15;
+        let powerReady = false;
+        let powerCharge = 0;
+        let powerChargeRate = 1;
+        let powerEffectTimeout;
+
+        // -----------------------
+        // Offline Audio (HTML5)
+        // -----------------------
+        // Make sure these files exist: audio/catch.mp3, audio/miss.mp3, audio/bg.mp3
+        let isMuted = false;
+        const catchSound = new Audio("audio/catch.mp3");
+        const missSound = new Audio("audio/miss.mp3");
+        const bgMusic = new Audio("audio/bg.mp3");
+        bgMusic.loop = true;
+        // small helper functions for sounds
+        function playCatch() {
+            if (isMuted) return;
+            try { catchSound.currentTime = 0; catchSound.play(); } catch(e){ /* ignore autoplay block */ }
+        }
+        function playMiss() {
+            if (isMuted) return;
+            try { missSound.currentTime = 0; missSound.play(); } catch(e){ }
+        }
+        function playBg() {
+            if (isMuted) return;
+            try { bgMusic.play(); } catch(e){ }
+        }
+        function stopBg() {
+            try { bgMusic.pause(); bgMusic.currentTime = 0; } catch(e){ }
+        }
+
+        // Replace original Tone-based sound functions with HTML5 audio calls
+        function playPop() {
+            playCatch();
+        }
+
+        function playBoom() {
+            playMiss();
+        }
+
+        function playGameOver() {
+            // stop background and play miss (game over sound). If you have a dedicated gameover audio, use it.
+            stopBg();
+            playMiss();
+        }
+        
+        function playTada() {
+            // use catch sound as placeholder for a positive jingle; if you have a separate tada file, replace this
+            playCatch();
+        }
+
+        // Toggles the master volume for all sounds
+        function toggleMute() {
+            isMuted = !isMuted;
+            if (isMuted) {
+                try { bgMusic.pause(); } catch(e) {}
+                muteButton.textContent = '🔇';
+            } else {
+                try { bgMusic.play(); } catch(e) {}
+                muteButton.textContent = '🔊';
+            }
+        }
+
+        function updateBasket() {
+            basket.style.left = basketX + 'px';
+        }
+
+        // Mouse move controls
+        game.addEventListener('mousemove', e => {
+            if (isPaused) return;
+            let rect = game.getBoundingClientRect();
+            let x = e.clientX - rect.left;
+            if (reverseControls) x = game.clientWidth - (e.clientX - rect.left);
+            basketX = Math.min(game.clientWidth - basket.offsetWidth, Math.max(0, x - basket.offsetWidth / 2));
+            updateBasket();
+        });
+
+        // Touch controls for mobile
+        game.addEventListener('touchmove', e => {
+            if (isPaused) return;
+            e.preventDefault();
+            let rect = game.getBoundingClientRect();
+            let x = e.touches[0].clientX - rect.left;
+            if (reverseControls) x = game.clientWidth - (e.touches[0].clientX - rect.left);
+            basketX = Math.min(game.clientWidth - basket.offsetWidth, Math.max(0, x - basket.offsetWidth / 2));
+            updateBasket();
+        });
+
+        // Keyboard controls
+        document.addEventListener('keydown', e => {
+            if (isPaused) return;
+            if (e.key === "ArrowLeft" || e.key.toLowerCase() === "a") {
+                basketX += reverseControls ? basketSpeed : -basketSpeed;
+            }
+            if (e.key === "ArrowRight" || e.key.toLowerCase() === "d") {
+                basketX += reverseControls ? -basketSpeed : basketSpeed;
+            }
+            if (e.code === "Space") {
+                activatePower();
+            }
+            basketX = Math.min(game.clientWidth - basket.offsetWidth, Math.max(0, basketX));
+            updateBasket();
+        });
+
+        function activatePower() {
+            if (!powerReady) return;
+            powerReady = false;
+            powerCharge = 0;
+            updatePowerBar();
+            basket.style.width = "160px";
+            if (powerEffectTimeout) clearTimeout(powerEffectTimeout);
+            powerEffectTimeout = setTimeout(() => {
+                basket.style.width = "80px";
+            }, 3000);
+        }
+        
+        function updatePowerBar() {
+            powerFill.style.width = powerCharge + '%';
+            if (powerCharge >= 100) {
+                powerReady = true;
+            }
+        }
+        
+        function chargePower() {
+            if (isPaused) return;
+            if (!powerReady) {
+                powerCharge = Math.min(100, powerCharge + powerChargeRate);
+                updatePowerBar();
+            }
+        }
+
+        // Difficulty scaling
+        let fallSpeedBase;
+        let spawnRate;
+        let fruitCount;
+
+        // Creates and adds a new falling object to the game
+        function spawn() {
+            const el = document.createElement('div');
+            el.className = 'object';
+            const type = Math.random();
+
+            if (type < 0.45) {
+                el.classList.add('fruit', 'roll');
+                el.textContent = fruits[Math.floor(Math.random() * fruits.length)];
+                el.dataset.type = 'fruit';
+            } else if (type < 0.6) {
+                el.classList.add('bomb');
+                el.textContent = '💣';
+                el.dataset.type = 'bomb';
+            } else if (type < 0.7) {
+                el.classList.add('rotten');
+                el.textContent = '🍏';
+                el.dataset.type = 'rotten';
+            } else if (type < 0.8 && reverseCount < maxReverse) {
+                el.classList.add('golden');
+                el.textContent = '🍍';
+                el.dataset.type = 'golden';
+            } else if (type < 0.95) {
+                el.classList.add('mystery');
+                el.textContent = '🎁';
+                el.dataset.type = 'mystery';
+            } else {
+                el.classList.add('heartfruit');
+                el.textContent = '💖';
+                el.dataset.type = 'heart';
+            }
+
+            el.style.left = Math.random() * (game.clientWidth - 40) + 'px';
+            el.style.top = '-40px';
+            game.appendChild(el);
+
+            let y = -40;
+            const fallSpeed = fallSpeedBase + Math.random() * 2;
+            const fall = setInterval(() => {
+                if (isPaused) return;
+                y += fallSpeed;
+                el.style.top = y + 'px';
+
+                if (y > game.clientHeight) {
+                    if (["fruit", "golden", "mystery", "heart"].includes(el.dataset.type)) {
+                        loseLife();
+                    }
+                    el.remove();
+                    clearInterval(fall);
+                } else {
+                    checkCatch(el, fall);
+                }
+            }, 25);
+            fallIntervals.push(fall);
+        }
+
+        // Handles what happens when an item is caught
+        function checkCatch(el, fall) {
+            const br = el.getBoundingClientRect();
+            const basketRect = basket.getBoundingClientRect();
+
+            if (br.bottom >= basketRect.top && br.left < basketRect.right && br.right > basketRect.left) {
+                if (el.dataset.type === 'fruit') {
+                    score += 1 * mult;
+                    fruitCount++;
+                    playPop();
+                } else if (el.dataset.type === 'bomb') {
+                    loseLife();
+                    playBoom();
+                } else if (el.dataset.type === 'rotten') {
+                    lives = Math.max(0, lives - 2);
+                    updateLives();
+                    playBoom();
+                } else if (el.dataset.type === 'golden') {
+                    reverseCount++;
+                    mult = 2;
+                    multEl.textContent = 'x2';
+                    reverseControls = true;
+                    warning.style.display = 'block';
+                    setTimeout(() => {
+                        reverseControls = false;
+                        warning.style.display = 'none';
+                    }, 5000);
+                    setTimeout(() => {
+                        mult = 1;
+                        multEl.textContent = 'x1';
+                    }, 8000);
+                    fruitCount++;
+                    playPop();
+                } else if (el.dataset.type === 'mystery') {
+                    handleMystery();
+                    playPop();
+                    fruitCount++;
+                } else if (el.dataset.type === 'heart') {
+                    if (lives < 7) {
+                        lives++;
+                        updateLives();
+                        effectEl.textContent = "+1 Life ❤️";
+                        effectEl.style.display = 'block';
+                        setTimeout(() => {
+                            effectEl.style.display = 'none';
+                        }, 2000);
+                    }
+                    playPop();
+                }
+
+                scoreEl.textContent = score;
+
+                // Difficulty scaling logic
+                if (fruitCount > 0 && fruitCount % 15 === 0) {
+                    if (spawnRate > 500) spawnRate -= 100;
+                    fallSpeedBase += 0.5;
+                    stage++;
+                    changeBackground(stage);
+                }
+
+                el.remove();
+                clearInterval(fall);
+            }
+        }
+
+        function handleMystery() {
+            const roll = Math.floor(Math.random() * 4);
+            effectEl.style.display = 'block';
+            if (roll === 0) {
+                if (lives < 7) {
+                    lives++;
+                    updateLives();
+                    effectEl.textContent = "+1 Life ❤️";
+                }
+            } else if (roll === 1) {
+                mult = 2;
+                multEl.textContent = "x2";
+                effectEl.textContent = "Double Points 🔥";
+                setTimeout(() => {
+                    mult = 1;
+                    multEl.textContent = "x1";
+                }, 10000);
+            } else if (roll === 2) {
+                score = Math.max(0, score - 5);
+                scoreEl.textContent = score;
+                effectEl.textContent = "Lose 5 Points 💀";
+            } else {
+                stormMode = true;
+                effectEl.textContent = "Fruit Storm 🌪️";
+                let oldRate = spawnRate;
+                spawnRate = 400;
+                setTimeout(() => {
+                    spawnRate = oldRate;
+                    stormMode = false;
+                }, 5000);
+                return;
+            }
+            setTimeout(() => {
+                effectEl.style.display = "none";
+            }, 2000);
+        }
+
+        function updateLives() {
+            livesEl.textContent = '❤️'.repeat(lives);
+            if (lives <= 0) endGame();
+        }
+
+        function loseLife() {
+            lives--;
+            updateLives();
+            flash.style.display = 'block';
+            setTimeout(() => {
+                flash.style.display = 'none';
+            }, 200);
+        }
+
+        function endGame() {
+            stopGame();
+            playGameOver();
+            finalScoreEl.textContent = score;
+            game.style.display = 'none';
+            gameOverModal.style.display = 'flex';
+        }
+
+        function pauseGame() {
+            isPaused = true;
+            pauseModal.style.display = 'flex';
+            // pause background music during pause
+            try { bgMusic.pause(); } catch(e) {}
+        }
+
+        function resumeGame() {
+            isPaused = false;
+            pauseModal.style.display = 'none';
+            // resume bg music if not muted
+            try { if (!isMuted) bgMusic.play(); } catch(e) {}
+            gameLoop();
+        }
+
+        function stopGame() {
+            clearInterval(gameInterval);
+            clearInterval(powerInterval);
+            fallIntervals.forEach(interval => clearInterval(interval));
+            fallIntervals = [];
+            // stop background music
+            try { bgMusic.pause(); bgMusic.currentTime = 0; } catch(e) {}
+        }
+
+        function changeBackground(stage) {
+            const colors = [
+                ["#f57c00", "#fbc02d"],
+                ["#2d93e8", "#8e44ad"],
+                ["#e74c3c", "#f1c40f"],
+                ["#ff6b6b", "#ffa500"]
+            ];
+            const newColors = colors[Math.min(stage, colors.length - 1)];
+            document.documentElement.style.setProperty('--background-start', newColors[0]);
+            document.documentElement.style.setProperty('--background-end', newColors[1]);
+        }
+        
+        // Button event listeners
+        startButton.addEventListener('click', startGame);
+        quitButton.addEventListener('click', endGame);
+        restartButton.addEventListener('click', startGame);
+        homeButton.addEventListener('click', () => {
+            location.reload();
+        });
+        pauseButton.addEventListener('click', pauseGame);
+        resumeButton.addEventListener('click', resumeGame);
+        muteButton.addEventListener('click', toggleMute);
+
+        // The main game loop
+        function gameLoop() {
+            if (isPaused) return;
+            spawn();
+            gameInterval = setTimeout(gameLoop, spawnRate);
+        }
+
+        function startGame() {
+            startScreenModal.style.display = 'none';
+            gameOverModal.style.display = 'none';
+            pauseModal.style.display = 'none';
+            game.style.display = 'block';
+
+            score = 0;
+            mult = 1;
+            lives = 5;
+            stage = 0;
+            reverseControls = false;
+            fallSpeedBase = 2;
+            spawnRate = 1500;
+            fruitCount = 0;
+            basketX = game.clientWidth / 2 - 40;
+            powerCharge = 0;
+            powerReady = false;
+            
+            stopGame();
+            const fallingObjects = document.querySelectorAll('.object');
+            fallingObjects.forEach(obj => obj.remove());
+
+            updateBasket();
+            // Start background music for game
+            try { if (!isMuted) bgMusic.play(); } catch(e) {}
+            gameLoop();
+            powerInterval = setInterval(chargePower, 100);
+        }
+    </script>
+</body>
+</html>
