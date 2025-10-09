@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Registration</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+      background: url('image/circus.jpg') no-repeat center center/cover;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+
+    .form-container {
+      background: white;
+      border-radius: 15px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+      width: 400px;
+      padding-bottom: 20px;
+      text-align: center;
+      overflow: hidden;
+    }
+
+    .form-header {
+      background: repeating-linear-gradient(
+        45deg,
+        #ff3c3c,
+        #ff3c3c 20px,
+        #ffd700 20px,
+        #ffd700 40px
+      );
+      height: 50px;
+      border-top-left-radius: 15px;
+      border-top-right-radius: 15px;
+    }
+
+    .form-title {
+      text-align: center;
+      font-size: 24px;
+      font-weight: bold;
+      margin: 15px 0;
+      color: #ff3c3c;
+    }
+
+    form {
+  padding: 0 30px;
+  text-align: left;
+}
+
+label {
+  display: block;
+  margin: 10px 0 5px;
+  font-weight: bold;
+  text-align: left; /* ensure labels align left */
+}
+
+input, select {
+  width: 100%;
+  padding: 10px;
+  border: 2px solid #ff3c3c;
+  border-radius: 5px;
+  font-size: 14px;
+  margin-bottom: 15px;
+  box-sizing: border-box; /* keeps consistent sizing */
+  display: block; /* forces alignment under label */
+}
+
+    button {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 5px;
+      background: linear-gradient(to right, #ff3c3c, #ffd700);
+      color: white;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 10px;
+      transition: 0.3s;
+    }
+
+    button:hover {
+      opacity: 0.9;
+    }
+
+    .note {
+      font-size: 12px;
+      margin-top: 10px;
+      color: #555;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="form-container">
+    <div class="form-header"></div>
+    <h2 class="form-title">CARNIVAL REGISTRATION</h2>
+
+    <form id="registrationForm">
+      <label for="name">Full Name</label>
+      <input type="text" id="name" placeholder="Enter your full name" required>
+
+      <label for="age">Age</label>
+      <input type="number" id="age" placeholder="Enter your age" required>
+
+      <label for="yearLevel">Year Level</label>
+      <select id="yearLevel" name="yearLevel" required>
+        <option value="" disabled selected>Select your year level</option>
+        <option value="1st Year">1st Year</option>
+        <option value="2nd Year">2nd Year</option>
+        <option value="3rd Year">3rd Year</option>
+        <option value="4th Year">4th Year</option>
+      </select>
+
+      <label for="section">Section</label>
+      <input type="text" id="section" placeholder="Enter your section" required>
+
+      <button type="submit" id="submitBtn">JOIN THE FUN 🎉</button>
+      <p class="note">Your information will be kept confidential.</p>
+    </form>
+  </div>
+
+  <script>
+    // Replace with your deployed Google Apps Script Web App URL
+    const scriptURL = "https://script.google.com/macros/s/AKfycbx19wF8kQY29IQUZbVI7_LBVNhHE6qaHWovgFkQ3uCLagYpQufZaG337uPvgB-ESZ4V/exec";
+    const form = document.getElementById("registrationForm");
+    const submitBtn = document.getElementById("submitBtn");
+
+    form.addEventListener("submit", (e) => {
+  e.preventDefault();
+
+  submitBtn.disabled = true;
+  submitBtn.textContent = "Saving...";
+
+  const payload = {
+    name: document.getElementById("name").value,
+    age: document.getElementById("age").value,
+    yearLevel: document.getElementById("yearLevel").value,
+    section: document.getElementById("section").value,
+  };
+
+  fetch(scriptURL, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  })
+    .then((res) => res.text())
+    .then((msg) => {
+      alert(msg);
+      form.reset();
+      window.location.href = "index.html";
+    })
+    .catch((err) => console.error("Error:", err))
+    .finally(() => {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "JOIN THE FUN 🎉";
+    });
+});
+</script>
+</body>
+</html>

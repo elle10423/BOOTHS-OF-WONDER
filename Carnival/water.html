@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dunk Tank Game</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Bangers&display=swap');
+
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      height: 100vh;
+      margin: 0;
+      font-family: 'Bangers', cursive;
+      color: #4b0082;
+      text-align: center;
+      position: relative;
+      z-index: 1;
+    }
+
+    body::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: url('image/dunk.jpg') no-repeat center center/cover;
+      filter: brightness(70%);
+      z-index: -1;
+    }
+
+    h1 {
+      font-size: 3em;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    #game-container {
+      border: 5px solid #ff4500;
+      border-radius: 20px;
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+      background: linear-gradient(to bottom, rgba(255, 240, 240, 0.8), rgba(255, 192, 203, 0.8));
+      padding: 20px;
+      margin-bottom: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      width: 90%;
+      max-width: 900px;
+    }
+
+    canvas {
+      background-color: transparent;
+      border: 3px solid #ff6347;
+      border-radius: 15px;
+      display: block;
+      width: 100%;
+      max-width: 800px;
+    }
+
+    .controls {
+      display: flex;
+      gap: 15px;
+      margin-top: 20px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    button {
+      padding: 12px 25px;
+      font-size: 1.2em;
+      font-family: 'Bangers', cursive;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
+    }
+
+    button:active {
+      transform: translateY(2px);
+      box-shadow: 0 2px 3px rgba(0, 0, 0, 0.2);
+    }
+
+    #shoot-button {
+      background: linear-gradient(45deg, #ff4500, #ff8c00);
+      order: -1; /* keep Shoot! button first */
+    }
+
+    #reset-button {
+      background: linear-gradient(45deg, #4682b4, #5f9ea0);
+    }
+
+    #score-reset-button {
+      background: linear-gradient(45deg, #ff8c00, #ff4500);
+    }
+
+    #home-button {
+      background: linear-gradient(45deg, #32cd32, #228b22);
+    }
+
+    .game-message {
+      font-size: 1.5em;
+      margin-top: 15px;
+      color: #d2691e;
+      min-height: 1.6em;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    /* Instructions modal */
+    #instructions-modal {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.8);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+    }
+
+    #instructions-content {
+      background: #fff;
+      border-radius: 15px;
+      padding: 30px;
+      max-width: 600px;
+      text-align: center;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+      color: #333;
+    }
+
+    #instructions-content h2 {
+      font-size: 2em;
+      margin-bottom: 20px;
+      color: #4b0082;
+    }
+
+    #instructions-content p {
+      font-size: 1.2em;
+      margin: 10px 0;
+    }
+
+    #start-game {
+      margin-top: 20px;
+      background: linear-gradient(45deg, #ff4500, #ff8c00);
+    }
+
+    @media (max-width: 600px) {
+      h1 {
+        font-size: 2em;
+      }
+      button {
+        padding: 10px 20px;
+        font-size: 1em;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Instructions Modal -->
+  <div id="instructions-modal">
+    <div id="instructions-content">
+      <h2>How to Play Dunk Tank 🎯</h2>
+      <p>🎮 Use <b>Arrow Keys</b> to move and aim the cannon.</p>
+      <p>🔫 Press <b>Spacebar</b> or click the <b>Shoot!</b> button to fire.</p>
+      <p>🤡 Hit the clowns to dunk them into the water!</p>
+      <p>❌ You only have <b>3 misses</b> before the game is over.</p>
+      <p>🏆 Dunk <b>10 clowns</b> to win!</p>
+      <button id="start-game">Start Game</button>
+    </div>
+  </div>
+
+  <div id="game-container">
+    <canvas id="gameCanvas"></canvas>
+    <div class="controls">
+      <button id="shoot-button">Shoot!</button>
+      <button id="reset-button" class="hidden">Play Again</button>
+      <button id="score-reset-button" class="hidden">Reset Score</button>
+      <button id="home-button" class="hidden">Back to Carnival Map</button>
+    </div>
+    <div class="game-message" id="game-message"></div>
+  </div>
+
+  <audio id="clickSound" src="audio/click.mp3" preload="auto"></audio>
+  <audio id="hitSound" src="audio/splash.mp3" preload="auto"></audio>
+  <audio id="missSound" src="audio/shoot.mp3" preload="auto"></audio>
+
+  <script>
+    const GAME_CONSTS = {
+      canvasWidth: 800,
+      canvasHeight: 400,
+      bulletRadius: 8,
+      clownScale: 60,
+      waterHeight: 50,
+      platformHeight: 10,
+      gunY: 340,
+      gunWidth: 50,
+      gunHeight: 20,
+      winCondition: 10,
+      maxMisses: 3
+    };
+
+    let gameState = {
+      bulletX: 0,
+      bulletY: 0,
+      bulletVelocityX: 0,
+      bulletVelocityY: 0,
+      isShooting: false,
+      clowns: [],
+      gameMessage: '',
+      isGameActive: true,
+      isGameWon: false,
+      gunAngle: 0,
+      gunX: GAME_CONSTS.canvasWidth / 2,
+      score: 0,
+      missCount: 0
+    };
+
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const shootButton = document.getElementById('shoot-button');
+    const resetButton = document.getElementById('reset-button');
+    const scoreResetButton = document.getElementById('score-reset-button');
+    const homeButton = document.getElementById('home-button');
+    const gameMessageElement = document.getElementById('game-message');
+
+    const clickSound = document.getElementById('clickSound');
+    const hitSound = document.getElementById('hitSound');
+    const missSound = document.getElementById('missSound');
+
+    canvas.width = GAME_CONSTS.canvasWidth;
+    canvas.height = GAME_CONSTS.canvasHeight;
+
+    function playSound(sound) {
+      try {
+        sound.currentTime = 0;
+        sound.play();
+      } catch (err) {}
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (gameState.isGameWon) {
+        ctx.fillStyle = '#4b0082';
+        ctx.font = '50px Bangers';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText("YOU WON!", canvas.width / 2, canvas.height / 2);
+        return;
+      }
+
+      ctx.fillStyle = '#1e90ff';
+      ctx.beginPath();
+      ctx.rect(0, canvas.height - GAME_CONSTS.waterHeight, canvas.width, GAME_CONSTS.waterHeight);
+      ctx.fill();
+
+      ctx.font = `${GAME_CONSTS.clownScale}px serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'bottom';
+      gameState.clowns.forEach(clown => {
+        if (!clown.isDunked) {
+          ctx.fillText('🤡', clown.x, clown.y);
+        }
+      });
+
+      ctx.save();
+      ctx.translate(gameState.gunX, GAME_CONSTS.gunY);
+      ctx.rotate(gameState.gunAngle);
+      ctx.fillStyle = '#555';
+      ctx.fillRect(0, -GAME_CONSTS.gunHeight / 2, GAME_CONSTS.gunWidth, GAME_CONSTS.gunHeight);
+      ctx.fillStyle = '#333';
+      ctx.beginPath();
+      ctx.arc(0, 0, GAME_CONSTS.gunHeight / 2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      if (gameState.isShooting) {
+        ctx.fillStyle = '#0000ff';
+        ctx.beginPath();
+        ctx.arc(gameState.bulletX, gameState.bulletY, GAME_CONSTS.bulletRadius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.fillStyle = '#4b0082';
+      ctx.font = '24px Bangers';
+      ctx.textAlign = 'right';
+      ctx.fillText(`Score: ${gameState.score}/${GAME_CONSTS.winCondition}`, canvas.width - 20, 40);
+
+      ctx.textAlign = 'left';
+      ctx.fillText(`Misses: ${gameState.missCount}/${GAME_CONSTS.maxMisses}`, 20, 40);
+    }
+
+    function update() {
+      if (gameState.isShooting) {
+        gameState.bulletX += gameState.bulletVelocityX;
+        gameState.bulletY += gameState.bulletVelocityY;
+
+        gameState.clowns.forEach(clown => {
+          if (!clown.isDunked) {
+            const dx = gameState.bulletX - clown.x;
+            const dy = gameState.bulletY - (clown.y - GAME_CONSTS.clownScale / 2);
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const clownHitRadius = GAME_CONSTS.clownScale / 2;
+
+            if (distance < GAME_CONSTS.bulletRadius + clownHitRadius) {
+              playSound(hitSound);
+              gameState.isShooting = false;
+              gameState.gameMessage = 'HIT! You dunked a clown!';
+              gameState.score++;
+              clown.isDunked = true;
+              animateClownFall(clown);
+            }
+          }
+        });
+
+        if (gameState.bulletX > canvas.width || gameState.bulletX < 0 || gameState.bulletY > canvas.height || gameState.bulletY < 0) {
+          playSound(missSound);
+          gameState.isShooting = false;
+          gameState.missCount++;
+          gameState.gameMessage = `MISS! You have ${GAME_CONSTS.maxMisses - gameState.missCount} shots left.`;
+          gameMessageElement.textContent = gameState.gameMessage;
+
+          if (gameState.missCount >= GAME_CONSTS.maxMisses) {
+            gameState.gameMessage = 'GAME OVER! You missed 3 times.';
+            gameState.isGameActive = false;
+            showResetButtons();
+          } else {
+            setTimeout(() => {
+              gameState.bulletX = 0;
+              gameState.bulletY = 0;
+              gameState.bulletVelocityX = 0;
+              gameState.bulletVelocityY = 0;
+              gameMessageElement.textContent = '';
+            }, 900);
+          }
+        }
+      }
+
+      if (gameState.isGameActive && !gameState.isGameWon) {
+        gameState.clowns.forEach(clown => {
+          if (!clown.isDunked) {
+            clown.x += clown.vx;
+            if (clown.x > canvas.width - GAME_CONSTS.clownScale / 2) clown.x = canvas.width - GAME_CONSTS.clownScale / 2;
+            if (clown.x < GAME_CONSTS.clownScale / 2) clown.x = GAME_CONSTS.clownScale / 2;
+            if (clown.x >= canvas.width - GAME_CONSTS.clownScale / 2 || clown.x <= GAME_CONSTS.clownScale / 2) {
+              clown.vx *= -1;
+            }
+          }
+        });
+      }
+    }
+
+    function gameLoop() {
+      update();
+      draw();
+      if (gameState.isGameActive && !gameState.isGameWon) {
+        requestAnimationFrame(gameLoop);
+      }
+    }
+
+    function animateClownFall(clown) {
+      const fallSpeed = 10;
+      const targetY = canvas.height - GAME_CONSTS.waterHeight + GAME_CONSTS.clownScale;
+      clown.vx = 0;
+
+      function fallFrame() {
+        if (clown.y < targetY) {
+          clown.y += fallSpeed;
+          draw();
+          requestAnimationFrame(fallFrame);
+        } else {
+          gameMessageElement.textContent = gameState.gameMessage;
+          if (gameState.score >= GAME_CONSTS.winCondition) {
+            gameState.isGameWon = true;
+            gameState.gameMessage = 'YOU WIN! Congratulations!';
+            gameState.isGameActive = false;
+            showResetButtons();
+          } else {
+            gameState.bulletX = 0;
+            gameState.bulletY = 0;
+            gameState.bulletVelocityX = 0;
+            gameState.bulletVelocityY = 0;
+            setTimeout(() => {
+              gameMessageElement.textContent = '';
+            }, 1000);
+          }
+        }
+      }
+      fallFrame();
+    }
+
+    function handleShoot() {
+      if (!gameState.isShooting && gameState.isGameActive) {
+        playSound(clickSound);
+        gameState.isShooting = true;
+        const bulletStartX = gameState.gunX + Math.cos(gameState.gunAngle) * GAME_CONSTS.gunWidth;
+        const bulletStartY = GAME_CONSTS.gunY + Math.sin(gameState.gunAngle) * GAME_CONSTS.gunWidth;
+        gameState.bulletX = bulletStartX;
+        gameState.bulletY = bulletStartY;
+        const speed = 15;
+        gameState.bulletVelocityX = Math.cos(gameState.gunAngle) * speed;
+        gameState.bulletVelocityY = Math.sin(gameState.gunAngle) * speed;
+        gameMessageElement.textContent = '';
+      }
+    }
+
+    function placeClownsRandomly() {
+      gameState.clowns = [];
+      for (let i = 0; i < GAME_CONSTS.winCondition; i++) {
+        const buffer = 60;
+        const x = Math.random() * (canvas.width - 2 * buffer) + buffer;
+        const y = Math.random() * (canvas.height - GAME_CONSTS.waterHeight - 2 * buffer) + buffer;
+        let currentSpeed = 7;
+        if (gameState.score >= 7) {
+          currentSpeed = 15;
+        } else if (gameState.score >= 3) {
+          currentSpeed = 10;
+        }
+        const vx = Math.random() > 0.5 ? currentSpeed : -currentSpeed;
+        gameState.clowns.push({ id: i, x: x, y: y, vx: vx, isDunked: false });
+      }
+    }
+
+    function initRound() {
+      gameState.bulletX = 0;
+      gameState.bulletY = 0;
+      gameState.bulletVelocityX = 0;
+      gameState.bulletVelocityY = 0;
+      gameState.isShooting = false;
+      gameState.gameMessage = '';
+      gameState.isGameActive = true;
+      gameState.gunAngle = 0;
+      draw();
+    }
+
+    resetButton.addEventListener('click', resetGame);
+    scoreResetButton.addEventListener('click', resetScore);
+    homeButton.addEventListener('click', () => {
+      window.location.href = "index.html";
+    });
+    shootButton.addEventListener('click', handleShoot);
+
+    document.addEventListener('keydown', (e) => {
+      if (!gameState.isGameActive) return;
+      const angleStep = 0.05;
+      const moveStep = 5;
+
+      if (e.key === 'ArrowUp') {
+        gameState.gunAngle = Math.max(gameState.gunAngle - angleStep, -Math.PI / 2);
+      } else if (e.key === 'ArrowDown') {
+        gameState.gunAngle = Math.min(gameState.gunAngle + angleStep, Math.PI / 2);
+      } else if (e.key === 'ArrowLeft') {
+        gameState.gunX = Math.max(gameState.gunX - moveStep, 0);
+      } else if (e.key === 'ArrowRight') {
+        gameState.gunX = Math.min(gameState.gunX + moveStep, canvas.width);
+      } else if (e.key === ' ') {
+        handleShoot();
+      }
+    });
+
+    function showResetButtons() {
+      resetButton.classList.remove('hidden');
+      scoreResetButton.classList.remove('hidden');
+      homeButton.classList.remove('hidden');
+      gameMessageElement.textContent = gameState.gameMessage;
+    }
+
+    function resetGame() {
+      gameState.missCount = 0;
+      gameState.isGameWon = false;
+      gameState.isGameActive = true;
+      gameState.gameMessage = '';
+      gameMessageElement.textContent = '';
+      resetButton.classList.add('hidden');
+      scoreResetButton.classList.add('hidden');
+      homeButton.classList.add('hidden');
+      placeClownsRandomly();
+      initRound();
+      requestAnimationFrame(gameLoop);
+    }
+
+    function resetScore() {
+      gameState.score = 0;
+      resetGame();
+    }
+
+    document.getElementById('start-game').addEventListener('click', () => {
+      document.getElementById('instructions-modal').style.display = 'none';
+      placeClownsRandomly();
+      initRound();
+      requestAnimationFrame(gameLoop);
+    });
+
+    draw();
+  </script>
+</body>
+</html>

@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>🎈 Balloon Popping Challenge 🎈</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+body {
+  font-family: 'Press Start 2P', cursive;
+  margin: 0;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background: #111;
+  color: white;
+  cursor: none;
+}
+
+/* glowing moving red-white border */
+.screen, #gameArea {
+  text-align: center;
+  padding: 30px;
+  border: 8px solid;
+  border-radius: 20px;
+  background: rgba(0,0,0,0.6);
+  border-image: repeating-linear-gradient(45deg, red 0 20px, white 20px 40px) 10 stretch;
+  animation: borderMove 3s linear infinite;
+  box-shadow: 0 0 15px red, 0 0 30px white;
+}
+
+@keyframes borderMove {
+  0% { border-image-source: repeating-linear-gradient(45deg, red 0 20px, white 20px 40px); }
+  50% { border-image-source: repeating-linear-gradient(45deg, white 0 20px, red 20px 40px); }
+  100% { border-image-source: repeating-linear-gradient(45deg, red 0 20px, white 20px 40px); }
+}
+
+h1 { font-size: 1.5rem; color: gold; text-shadow: 0 0 10px #ffcc00; }
+button {
+  font-family: 'Press Start 2P', cursive;
+  padding: 12px 25px;
+  font-size: 14px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(45deg, #ff6600,#ffcc00);
+  cursor: pointer;
+  margin-top: 10px;
+  animation: pulse 1.5s infinite;
+  box-shadow: 0 0 10px #ffcc00;
+}
+button:hover { transform: scale(1.1); }
+@keyframes pulse {
+  0% { transform: scale(1); box-shadow: 0 0 10px #ffcc00; }
+  50% { transform: scale(1.1); box-shadow: 0 0 20px #ffaa00; }
+  100% { transform: scale(1); box-shadow: 0 0 10px #ffcc00; }
+}
+
+#gameArea {
+  position: relative;
+  width: 800px;
+  height: 400px;
+  margin: 20px auto 0;
+  border-radius: 15px;
+  background: rgba(0,0,0,0.8);
+  overflow: hidden;
+}
+
+#hud {
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 10px;
+}
+#scoreBoard, #timer, #roundDisplay { font-size: 14px; }
+
+.balloon {
+  position: absolute;
+  width: 60px; 
+  height: 90px;
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  cursor: pointer;
+}
+.bomb {
+  position: absolute;
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: black;
+  border: 3px solid red;
+  cursor: pointer;
+}
+.rope {
+  position: absolute;
+  width: 100%;
+  height: 4px;
+  background: gray;
+  opacity: 0.5;
+}
+#gameOverMessage {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 2rem;
+  color: red;
+  text-shadow: 0 0 20px #ff4444, 0 0 40px yellow;
+  display: none;
+  z-index: 20;
+  animation: pulseGameOver 1s infinite alternate;
+  text-align: center;
+  white-space: pre-line;
+}
+@keyframes pulseGameOver {
+  0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+  50% { transform: translate(-50%, -50%) scale(1.2); opacity: 0.7; }
+  100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+}
+.confetti {
+  position: absolute;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  animation: fall 2s linear forwards;
+}
+@keyframes fall {
+  0% { transform: translateY(0) rotate(0deg); }
+  100% { transform: translateY(200px) rotate(360deg); opacity: 0; }
+}
+#screenFlash {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(255,0,0,0.6);
+  z-index: 9998;
+  display: none;
+}
+#cursor {
+  position: fixed;
+  width: 40px; height: 40px;
+  border: 2px solid white;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 10000;
+}
+#cursor::before, #cursor::after {
+  content: "";
+  position: absolute;
+  background: white;
+}
+#cursor::before { width: 2px; height: 100%; left: 50%; top: 0; transform: translateX(-50%); }
+#cursor::after { width: 100%; height: 2px; left: 0; top: 50%; transform: translateY(-50%); }
+@keyframes shake {
+  0% { transform: translate(0,0); }
+  20% { transform: translate(-10px,5px); }
+  40% { transform: translate(10px,-5px); }
+  60% { transform: translate(-10px,-5px); }
+  80% { transform: translate(10px,5px); }
+  100% { transform: translate(0,0); }
+}
+.shake { animation: shake 0.5s ease; }
+</style>
+</head>
+<body>
+
+<div id="introScreen" class="screen">
+  <h1>🎈 Balloon Popping Challenge 🎈</h1>
+  <p>Pop all balloons before they escape. Avoid bombs!</p>
+  <button onclick="startGame()">Start Game</button>
+</div>
+
+<div id="gameScreen" class="screen" style="display:none;">
+  <div id="hud">
+    <div id="scoreBoard">Score: 0</div>
+    <div id="timer">Time: 30</div>
+    <div id="roundDisplay">Round: 1</div>
+  </div>
+  <div id="gameArea"></div>
+  <div id="gameOverMessage"></div>
+  <button id="restartBtn" style="display:none;" onclick="restartGame()">Restart Game</button>
+  <button id="backBtn" style="display:none;" onclick="backToMap()">Back to Game Map</button>
+</div>
+
+<div id="cursor"></div>
+<div id="screenFlash"></div>
+
+<audio id="popSound" src="https://www.soundjay.com/button/sounds/button-16.mp3" preload="auto"></audio>
+<audio id="boomSound" src="https://www.soundjay.com/button/sounds/explosion-01.mp3" preload="auto"></audio>
+
+<script>
+const gameArea = document.getElementById('gameArea');
+const scoreBoard = document.getElementById('scoreBoard');
+const timerDisplay = document.getElementById('timer');
+const roundDisplay = document.getElementById('roundDisplay');
+const gameOverMessage = document.getElementById('gameOverMessage');
+const restartBtn = document.getElementById('restartBtn');
+const backBtn = document.getElementById('backBtn');
+
+let score=0, round=1, objects=[], gameActive=false, timerEnded=false;
+let timerInterval, spawnInterval;
+const maxRounds=3;
+let timeLeft=30;
+
+function startGame(){ 
+  score=0; round=1; 
+  scoreBoard.textContent=`Score: ${score}`; 
+  roundDisplay.textContent=`Round: ${round}`; 
+  document.getElementById('introScreen').style.display='none'; 
+  document.getElementById('gameScreen').style.display='block'; 
+  restartBtn.style.display='none'; 
+  backBtn.style.display='none';
+  startRound(); 
+}
+
+function restartGame(){ 
+  score=0; round=1; 
+  scoreBoard.textContent=`Score: ${score}`; 
+  roundDisplay.textContent=`Round: ${round}`; 
+  gameOverMessage.style.display='none'; 
+  restartBtn.style.display='none'; 
+  backBtn.style.display='none';
+  startRound(); 
+}
+
+function backToMap(){
+  window.location.href = "index.html";
+}
+
+function startRound(){ 
+  if(round>maxRounds){ endGame("🏆 YOU WIN!"); return; } 
+  resetRound(); 
+  drawRopes(); 
+  startTimer(); 
+  spawnObjects(); 
+  gameActive=true; timerEnded=false; 
+}
+
+function resetRound(){ 
+  gameArea.innerHTML=''; 
+  objects=[]; 
+  timeLeft=Math.max(30-(round-1)*5,10); 
+  timerDisplay.textContent=`Time: ${timeLeft}`; 
+}
+
+function endGame(reason="Game Over"){ 
+  if(!gameActive) return; 
+  gameActive=false; 
+  clearInterval(spawnInterval); 
+  clearInterval(timerInterval); 
+  objects.forEach(o=>o.remove()); 
+  objects=[]; 
+  gameOverMessage.textContent=`${reason}\nFinal Score: ${score}`; 
+  gameOverMessage.style.color="red"; 
+  gameOverMessage.style.display='block'; 
+  restartBtn.style.display='inline-block'; 
+  backBtn.style.display='inline-block';
+}
+
+function celebratePerfectRound(){ 
+  gameActive=false; 
+  if(round===maxRounds){ 
+    gameOverMessage.textContent="🎉 YOU WIN! 🎉\nFinal Score: "+score; 
+    gameOverMessage.style.color="lime"; 
+    gameOverMessage.style.display="block"; 
+    restartBtn.style.display='inline-block'; 
+    backBtn.style.display='inline-block';
+    return; 
+  } 
+  gameOverMessage.textContent=`🎉 Perfect Round ${round}! 🎉`; 
+  gameOverMessage.style.color="lime"; 
+  gameOverMessage.style.display="block"; 
+  for(let i=0;i<50;i++){ 
+    let conf=document.createElement('div'); 
+    conf.classList.add('confetti'); 
+    conf.style.left=Math.random()*800+'px'; 
+    conf.style.top='0px'; 
+    conf.style.background=['red','yellow','blue','green','purple','orange'][Math.floor(Math.random()*6)]; 
+    gameArea.appendChild(conf); 
+    setTimeout(()=>conf.remove(),2000); 
+  } 
+  setTimeout(()=>{ 
+    gameOverMessage.style.display='none'; 
+    round++; 
+    roundDisplay.textContent=`Round: ${round}`; 
+    startRound(); 
+  },2500); 
+}
+
+function spawnObjects(){ 
+  clearInterval(spawnInterval); 
+  let spawnRate=Math.max(1000-(round-1)*250,250); 
+  spawnInterval=setInterval(()=>{ 
+    if(!gameActive) return; 
+    if(Math.random()<0.2+(round-1)*0.1) createBomb(); 
+    else createBalloon(); 
+  }, spawnRate); 
+}
+
+function createBalloon(){ 
+  const balloon=document.createElement('div'); 
+  balloon.classList.add('balloon'); 
+  balloon.style.background=['red','blue','yellow','green','purple','orange'][Math.floor(Math.random()*6)]; 
+  balloon.dataset.points=10; 
+  let laneY=[gameArea.offsetHeight/4, gameArea.offsetHeight/2, 3*gameArea.offsetHeight/4][Math.floor(Math.random()*3)]; 
+  balloon.style.top=laneY-45+'px'; 
+  balloon.style.left='0px'; 
+  gameArea.appendChild(balloon); 
+  objects.push(balloon); 
+  let speed=3+round*1.5; 
+  let moving=true; 
+
+  function move(){ 
+    if(!moving||!gameActive) return; 
+    let currentLeft=parseFloat(balloon.style.left); 
+    currentLeft+=speed; 
+    balloon.style.left=currentLeft+'px'; 
+    if(currentLeft>gameArea.offsetWidth){ 
+      moving=false; 
+      balloon.remove(); 
+      objects=objects.filter(o=>o!==balloon); 
+      endGame("💨 A balloon escaped!"); 
+      return; 
+    } 
+    requestAnimationFrame(move); 
+  } 
+  move(); 
+
+  balloon.onclick=()=>{ 
+    if(!moving) return; 
+    moving=false; 
+    popBalloon(balloon); 
+  }; 
+}
+
+function createBomb(){ 
+  const bomb=document.createElement('div'); 
+  bomb.classList.add('bomb'); 
+  let laneY=[gameArea.offsetHeight/4, gameArea.offsetHeight/2, 3*gameArea.offsetHeight/4][Math.floor(Math.random()*3)]; 
+  bomb.style.top=laneY-20+'px'; 
+  bomb.style.left='0px'; 
+  gameArea.appendChild(bomb); 
+  objects.push(bomb); 
+  let speed=4+round*1.5; 
+  let moving=true; 
+
+  function move(){ 
+    if(!moving||!gameActive) return; 
+    let currentLeft=parseFloat(bomb.style.left); 
+    currentLeft+=speed; 
+    bomb.style.left=currentLeft+'px'; 
+    if(currentLeft>gameArea.offsetWidth){ 
+      moving=false; 
+      bomb.remove(); 
+      objects=objects.filter(o=>o!==bomb); 
+      return; 
+    } 
+    requestAnimationFrame(move); 
+  } 
+  move(); 
+
+  bomb.onclick=()=>{ 
+    if(!moving) return; 
+    moving=false; 
+    explodeBomb(); 
+  }; 
+}
+
+function popBalloon(balloon){ 
+  score+=parseInt(balloon.dataset.points); 
+  scoreBoard.textContent=`Score: ${score}`; 
+  document.getElementById("popSound").currentTime=0; 
+  document.getElementById("popSound").play(); 
+  for(let i=0;i<10;i++){ 
+    let conf=document.createElement('div'); 
+    conf.classList.add('confetti'); 
+    conf.style.left=balloon.offsetLeft+30+'px'; 
+    conf.style.top=balloon.offsetTop+45+'px'; 
+    conf.style.background=['red','yellow','blue','green','purple','orange'][Math.floor(Math.random()*6)]; 
+    gameArea.appendChild(conf); 
+    setTimeout(()=>conf.remove(),1000); 
+  } 
+  balloon.remove(); 
+  objects=objects.filter(o=>o!==balloon); 
+}
+
+function explodeBomb(){ 
+  document.getElementById("boomSound").currentTime=0; 
+  document.getElementById("boomSound").play(); 
+  flashScreen(); 
+  document.body.classList.add("shake"); 
+  setTimeout(()=>document.body.classList.remove("shake"),500); 
+  endGame("💥 You hit a bomb!"); 
+}
+
+function flashScreen(){ 
+  const flash=document.getElementById('screenFlash'); 
+  flash.style.display='block'; 
+  setTimeout(()=>flash.style.display='none',300); 
+}
+
+function startTimer(){ 
+  clearInterval(timerInterval); 
+  timerInterval=setInterval(()=>{ 
+    if(!gameActive){ clearInterval(timerInterval); return; } 
+    timeLeft--; 
+    timerDisplay.textContent=`Time: ${timeLeft}`; 
+    if(timeLeft<=0){ 
+      clearInterval(timerInterval); 
+      timerEnded=true; 
+      // Check if any balloons are left
+      if (objects.filter(o => o.classList.contains('balloon')).length === 0) {
+        celebratePerfectRound();
+      } else {
+        endGame("⏱️ Time's up!");
+      }
+    } 
+  },1000); 
+}
+
+function drawRopes(){
+  let ropePositions=[gameArea.offsetHeight/4, gameArea.offsetHeight/2, 3*gameArea.offsetHeight/4];
+  ropePositions.forEach((y,index)=>{
+    let rope=document.createElement('div');
+    rope.classList.add('rope');
+    rope.style.top=y+'px';
+    rope.style.left='0px';
+    gameArea.appendChild(rope);
+
+    // horizontal sway
+    let amplitude=20;
+    let speed=0.005+Math.random()*0.005;
+    function sway(){ 
+      if(!gameActive) return;
+      rope.style.top = y + amplitude*Math.sin(Date.now()*speed + index) + 'px';
+      requestAnimationFrame(sway);
+    }
+    sway();
+  });
+}
+
+const cursor=document.getElementById('cursor');
+document.addEventListener('mousemove', e=>{
+  cursor.style.left=(e.clientX-20)+'px';
+  cursor.style.top=(e.clientY-20)+'px';
+});
+</script>
+</body>
+</html>
